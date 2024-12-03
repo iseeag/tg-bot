@@ -1,4 +1,7 @@
 pinecone
-python-telegram-bot>=20.0
+python-telegram-bot
 gradio
 loguru
+instructor
+openai
+python-dotenv
