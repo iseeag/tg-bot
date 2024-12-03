@@ -210,13 +210,30 @@ class TelegramBotServiceGradio:
 
         return interface
 
-    def run(self, port: int = 7860):
-        """Run the Gradio interface."""
+    def run(self, server_name: str = None, server_port: int = 7860):
+        """Run the Gradio interface.
+        
+        Args:
+            server_name: Server name or IP to bind to (e.g., '0.0.0.0' for public access)
+            server_port: Port number to run the server on
+        """
         interface = self.create_ui()
         interface.queue()
-        interface.launch(server_port=port)
+        interface.launch(
+            server_name=server_name,
+            server_port=server_port,
+            # share=server_name == "0.0.0.0"  # Enable sharing if binding to all interfaces
+        )
 
 
 if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="运行Telegram机器人管理系统")
+    parser.add_argument("--host", default=None, help="服务器主机名或IP (例如: '0.0.0.0'表示公开访问)")
+    parser.add_argument("--port", type=int, default=7860, help="服务器端口号")
+    
+    args = parser.parse_args()
+    
     service = TelegramBotServiceGradio()
-    service.run()
+    service.run(server_name=args.host, server_port=args.port)
