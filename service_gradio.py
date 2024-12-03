@@ -13,7 +13,7 @@ class TelegramBotServiceGradio:
     def __init__(self):
         self.db = Database()
         self.bot_manager = TelegramBotManager(self.db)
-        
+
         # Start asyncio event loop in a separate thread
         self.loop = asyncio.new_event_loop()
         self.thread = threading.Thread(target=self._run_event_loop, daemon=True)
@@ -29,7 +29,7 @@ class TelegramBotServiceGradio:
             config = json.loads(config_str)
         except json.JSONDecodeError:
             return "Error: Invalid JSON configuration"
-            
+
         bot_id = self.bot_manager.create_bot(token, bot_handle, config)
         if bot_id:
             return f"Success: Bot created with ID: {bot_id}"
@@ -44,12 +44,13 @@ class TelegramBotServiceGradio:
         bots = self.list_bots()
         if not bots:
             return "No bots found"
-            
+
         result = []
         for bot in bots:
             result.append(f"Bot ID: {bot['bot_id']}")
+            result.append(f"Handle: {bot['bot_handle']}")
             result.append(f"Status: {bot['status']}")
-            result.append(f"Config: {json.dumps(bot['config'], indent=2)}")
+            result.append(f"Config: {json.dumps(bot['config'], indent=2, ensure_ascii=False)}")
             result.append("-" * 50)
         return "\n".join(result)
 
@@ -77,7 +78,7 @@ class TelegramBotServiceGradio:
             config = json.loads(config_str)
         except json.JSONDecodeError:
             return "Error: Invalid JSON configuration"
-            
+
         if self.bot_manager.update_bot(bot_id, config):
             return f"Success: Bot {bot_id} configuration updated"
         return f"Error: Failed to update bot configuration"
@@ -87,7 +88,7 @@ class TelegramBotServiceGradio:
         chats = self.bot_manager.list_chats(bot_id)
         if not chats:
             return "No chats found"
-            
+
         result = []
         for chat in chats:
             result.append(f"Chat ID: {chat['chat_id']}")
@@ -100,7 +101,7 @@ class TelegramBotServiceGradio:
         history = self.bot_manager.get_chat_history(bot_id, chat_id)
         if not history:
             return "No messages found"
-            
+
         result = []
         for msg in history:
             sender = "Bot" if msg['is_from_bot'] else "User"
@@ -113,7 +114,7 @@ class TelegramBotServiceGradio:
         """Create the Gradio interface."""
         with gr.Blocks(title="Telegram Bot Manager") as interface:
             gr.Markdown("# Telegram Bot Manager")
-            
+
             with gr.Tab("Create Bot"):
                 with gr.Row():
                     token_input = gr.Textbox(label="Bot Token")
@@ -139,7 +140,7 @@ class TelegramBotServiceGradio:
                     inputs=[],
                     outputs=bot_list
                 )
-                
+
                 with gr.Row():
                     bot_id_input = gr.Textbox(label="Bot ID")
                     action_btns = gr.Group()
@@ -147,37 +148,37 @@ class TelegramBotServiceGradio:
                         start_btn = gr.Button("Start")
                         stop_btn = gr.Button("Stop")
                         delete_btn = gr.Button("Delete")
-                
+
                 with gr.Row():
                     config_update = gr.Textbox(
                         label="New Configuration (JSON)",
                         lines=5
                     )
                     update_btn = gr.Button("Update")
-                
+
                 action_output = gr.Textbox(label="Action Result")
-                
+
                 start_btn.click(
                     fn=lambda x: asyncio.run_coroutine_threadsafe(
                         self.start_bot(x), self.loop).result(),
                     inputs=bot_id_input,
                     outputs=action_output
                 )
-                
+
                 stop_btn.click(
                     fn=lambda x: asyncio.run_coroutine_threadsafe(
                         self.stop_bot(x), self.loop).result(),
                     inputs=bot_id_input,
                     outputs=action_output
                 )
-                
+
                 delete_btn.click(
                     fn=lambda x: asyncio.run_coroutine_threadsafe(
                         self.delete_bot(x), self.loop).result(),
                     inputs=bot_id_input,
                     outputs=action_output
                 )
-                
+
                 update_btn.click(
                     fn=self.update_bot,
                     inputs=[bot_id_input, config_update],
@@ -188,19 +189,19 @@ class TelegramBotServiceGradio:
                 with gr.Row():
                     chat_bot_id = gr.Textbox(label="Bot ID")
                     chat_id = gr.Textbox(label="Chat ID")
-                
+
                 list_chats_btn = gr.Button("List Chats")
                 chats_output = gr.Textbox(label="Chats", lines=5)
-                
+
                 view_history_btn = gr.Button("View Chat History")
                 history_output = gr.Textbox(label="Chat History", lines=10)
-                
+
                 list_chats_btn.click(
                     fn=self.list_chats,
                     inputs=chat_bot_id,
                     outputs=chats_output
                 )
-                
+
                 view_history_btn.click(
                     fn=self.get_chat_history,
                     inputs=[chat_bot_id, chat_id],
@@ -214,6 +215,7 @@ class TelegramBotServiceGradio:
         interface = self.create_ui()
         interface.queue()
         interface.launch(server_port=port)
+
 
 if __name__ == "__main__":
     service = TelegramBotServiceGradio()
