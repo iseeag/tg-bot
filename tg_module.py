@@ -16,23 +16,24 @@ class TelegramBotManager:
         self.running_bots: Dict[str, Application] = {}
         logger.info("TelegramBotManager initialized")
 
-    def create_bot(self, token: str, config: Dict) -> Optional[str]:
+    def create_bot(self, token: str, bot_handle: str, config: Dict) -> Optional[str]:
         """
         Create a new bot with the given token and configuration.
         
         Args:
             token: Telegram bot token
+            bot_handle: Telegram bot handle (username)
             config: Dictionary containing bot configuration
             
         Returns:
             bot_id if successful, None otherwise
         """
         bot_id = str(uuid.uuid4())
-        logger.info(f"Creating new bot with ID: {bot_id}")
-        if self.db.add_bot(bot_id, token, config):
-            logger.success(f"Bot {bot_id} created successfully")
+        logger.info(f"Creating new bot with ID: {bot_id}, handle: {bot_handle}")
+        if self.db.add_bot(bot_id, token, bot_handle, config):
+            logger.success(f"Bot {bot_id} ({bot_handle}) created successfully")
             return bot_id
-        logger.error(f"Failed to create bot {bot_id}")
+        logger.error(f"Failed to create bot {bot_id} ({bot_handle})")
         return None
 
     def update_bot(self, bot_id: str, config: Dict) -> bool:

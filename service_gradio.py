@@ -23,14 +23,14 @@ class TelegramBotServiceGradio:
         asyncio.set_event_loop(self.loop)
         self.loop.run_forever()
 
-    def create_bot(self, token: str, config_str: str) -> str:
+    def create_bot(self, token: str, bot_handle: str, config_str: str) -> str:
         """Create a new bot with the given token and configuration."""
         try:
             config = json.loads(config_str)
         except json.JSONDecodeError:
             return "Error: Invalid JSON configuration"
             
-        bot_id = self.bot_manager.create_bot(token, config)
+        bot_id = self.bot_manager.create_bot(token, bot_handle, config)
         if bot_id:
             return f"Success: Bot created with ID: {bot_id}"
         return "Error: Failed to create bot"
@@ -117,6 +117,7 @@ class TelegramBotServiceGradio:
             with gr.Tab("Create Bot"):
                 with gr.Row():
                     token_input = gr.Textbox(label="Bot Token")
+                    bot_handle_input = gr.Textbox(label="Bot Handle")
                     config_input = gr.Textbox(
                         label="Configuration (JSON)",
                         value='{\n    "name": "My Bot",\n    "description": "A new bot"\n}',
@@ -126,7 +127,7 @@ class TelegramBotServiceGradio:
                 create_output = gr.Textbox(label="Result")
                 create_btn.click(
                     fn=self.create_bot,
-                    inputs=[token_input, config_input],
+                    inputs=[token_input, bot_handle_input, config_input],
                     outputs=create_output
                 )
 

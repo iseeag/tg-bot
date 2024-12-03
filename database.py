@@ -18,6 +18,7 @@ class Database:
                 CREATE TABLE IF NOT EXISTS bots (
                     bot_id TEXT PRIMARY KEY,
                     token TEXT NOT NULL,
+                    bot_handle TEXT NOT NULL,
                     config TEXT NOT NULL,
                     status TEXT DEFAULT 'stopped',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -51,13 +52,13 @@ class Database:
             
             conn.commit()
 
-    def add_bot(self, bot_id: str, token: str, config: Dict) -> bool:
+    def add_bot(self, bot_id: str, token: str, bot_handle: str, config: Dict) -> bool:
         try:
             with sqlite3.connect(self.db_file) as conn:
                 cursor = conn.cursor()
                 cursor.execute(
-                    "INSERT INTO bots (bot_id, token, config) VALUES (?, ?, ?)",
-                    (bot_id, token, json.dumps(config))
+                    "INSERT INTO bots (bot_id, token, bot_handle, config) VALUES (?, ?, ?, ?)",
+                    (bot_id, token, bot_handle, json.dumps(config))
                 )
                 conn.commit()
                 return True
@@ -95,7 +96,7 @@ class Database:
         with sqlite3.connect(self.db_file) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT bot_id, token, config, status FROM bots WHERE bot_id = ?",
+                "SELECT bot_id, token, bot_handle, config, status FROM bots WHERE bot_id = ?",
                 (bot_id,)
             )
             row = cursor.fetchone()
@@ -103,20 +104,22 @@ class Database:
                 return {
                     "bot_id": row[0],
                     "token": row[1],
-                    "config": json.loads(row[2]),
-                    "status": row[3]
+                    "bot_handle": row[2],
+                    "config": json.loads(row[3]),
+                    "status": row[4]
                 }
             return None
 
     def get_all_bots(self) -> List[Dict]:
         with sqlite3.connect(self.db_file) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT bot_id, token, config, status FROM bots")
+            cursor.execute("SELECT bot_id, token, bot_handle, config, status FROM bots")
             return [{
                 "bot_id": row[0],
                 "token": row[1],
-                "config": json.loads(row[2]),
-                "status": row[3]
+                "bot_handle": row[2],
+                "config": json.loads(row[3]),
+                "status": row[4]
             } for row in cursor.fetchall()]
 
     def add_chat(self, chat_id: str, bot_id: str, chat_name: str) -> bool:
