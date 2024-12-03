@@ -1,0 +1,3 @@
+pinecone
+python-telegram-bot>=20.0
+gradio
