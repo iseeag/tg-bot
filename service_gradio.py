@@ -152,10 +152,10 @@ class TelegramBotServiceGradio:
                         config_input = gr.Textbox(
                             label="配置（JSON格式）",
                             value=default_config_json,
-                            lines=4
+                            lines=12
                         )
                 create_btn = gr.Button("创建机器人")
-                create_output = gr.Textbox(label="结果")
+                create_output = gr.Textbox(label="操作结果")
                 create_btn.click(
                     fn=self.create_bot,
                     inputs=[token_input, bot_handle_input, config_input],
