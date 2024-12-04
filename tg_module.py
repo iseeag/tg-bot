@@ -193,6 +193,32 @@ class TelegramBotManager:
             logger.exception(f"Error stopping bot {bot_id}: {str(e)}")
             return False
 
+    def get_bot(self, bot_id: str) -> Optional[Dict]:
+        """
+        Get bot information by bot_id.
+
+        Args:
+            bot_id: Unique identifier for the bot
+
+        Returns:
+            Dictionary containing bot information
+        """
+        logger.debug(f"Retrieving bot information for bot {bot_id}")
+        return self.db.get_bot(bot_id)
+
+    def get_bot_by_handle(self, bot_handle: str) -> Optional[Dict]:
+        """
+        Get bot information by bot handle.
+
+        Args:
+            bot_handle: Telegram bot handle (username)
+
+        Returns:
+            Dictionary containing bot information
+        """
+        logger.debug(f"Retrieving bot information for bot handle {bot_handle}")
+        return self.db.get_bot_by_handle(bot_handle)
+
     def list_bots(self) -> List[Dict]:
         """
         Get a list of all bots and their status.

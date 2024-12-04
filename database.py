@@ -12,7 +12,7 @@ class Database:
     def _init_db(self):
         with sqlite3.connect(self.db_file) as conn:
             cursor = conn.cursor()
-            
+
             # Create bots table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS bots (
@@ -24,7 +24,7 @@ class Database:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
-            
+
             # Create chats table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS chats (
@@ -36,7 +36,7 @@ class Database:
                     FOREIGN KEY (bot_id) REFERENCES bots(bot_id)
                 )
             ''')
-            
+
             # Create messages table
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS messages (
@@ -49,7 +49,7 @@ class Database:
                     FOREIGN KEY (chat_id, bot_id) REFERENCES chats(chat_id, bot_id)
                 )
             ''')
-            
+
             conn.commit()
 
     def add_bot(self, bot_id: str, token: str, bot_handle: str, config: Dict) -> bool:
@@ -98,6 +98,24 @@ class Database:
             cursor.execute(
                 "SELECT bot_id, token, bot_handle, config, status FROM bots WHERE bot_id = ?",
                 (bot_id,)
+            )
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "bot_id": row[0],
+                    "token": row[1],
+                    "bot_handle": row[2],
+                    "config": json.loads(row[3]),
+                    "status": row[4]
+                }
+            return None
+
+    def get_bot_by_handle(self, bot_handle: str) -> Optional[Dict]:
+        with sqlite3.connect(self.db_file) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT bot_id, token, bot_handle, config, status FROM bots WHERE bot_handle = ?",
+                (bot_handle,)
             )
             row = cursor.fetchone()
             if row:

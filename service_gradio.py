@@ -1,7 +1,7 @@
 import asyncio
 import json
 import threading
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import gradio as gr
 
@@ -39,6 +39,24 @@ class TelegramBotServiceGradio:
         """Get a list of all bots and their status."""
         return self.bot_manager.list_bots()
 
+    def list_bot_handles(self) -> List[str]:
+        """Get a list of all bot handles."""
+        return [b['bot_handle'] for b in self.bot_manager.list_bots()]
+
+    def get_bot_config(self, bot_handle: str) -> str:
+        """Get the configuration of a bot."""
+        # get_bot_by_handle
+        bot = self.bot_manager.get_bot_by_handle(bot_handle)
+        return json.dumps(bot['config'], indent=4, ensure_ascii=False)
+
+    def get_bot_info(self, bot_handle: str) -> str:
+        """Get the status of a bot."""
+        bot = self.bot_manager.get_bot_by_handle(bot_handle)
+        result = [f"机器人ID：{bot['bot_id']}",
+                  f"用户名：{bot['bot_handle']}",
+                  f"状态：{bot['status']}"]
+        return "\n".join(result)
+
     def format_bot_list(self) -> str:
         """Format bot list for display."""
         bots = self.list_bots()
@@ -54,33 +72,37 @@ class TelegramBotServiceGradio:
             result.append("-" * 50)
         return "\n".join(result)
 
-    async def start_bot(self, bot_id: str) -> str:
+    async def start_bot(self, bot_handle: str) -> str:
         """Start a bot."""
-        if await self.bot_manager.start_bot(bot_id):
-            return f"成功：机器人 {bot_id} 已启动"
-        return f"错误：启动机器人 {bot_id} 失败"
+        bot = self.bot_manager.get_bot_by_handle(bot_handle)
+        if await self.bot_manager.start_bot(bot['bot_id']):
+            return f"成功：机器人 {bot_handle} 已启动"
+        return f"错误：启动机器人 {bot_handle} 失败"
 
-    async def stop_bot(self, bot_id: str) -> str:
+    async def stop_bot(self, bot_handle: str) -> str:
         """Stop a bot."""
-        if await self.bot_manager.stop_bot(bot_id):
-            return f"成功：机器人 {bot_id} 已停止"
-        return f"错误：停止机器人 {bot_id} 失败"
+        bot = self.bot_manager.get_bot_by_handle(bot_handle)
+        if await self.bot_manager.stop_bot(bot['bot_id']):
+            return f"成功：机器人 {bot_handle} 已停止"
+        return f"错误：停止机器人 {bot_handle} 失败"
 
-    async def delete_bot(self, bot_id: str) -> str:
+    async def delete_bot(self, bot_handle: str) -> str:
         """Delete a bot."""
-        if await self.bot_manager.delete_bot(bot_id):
-            return f"成功：机器人 {bot_id} 已删除"
-        return f"错误：删除机器人 {bot_id} 失败"
+        bot = self.bot_manager.get_bot_by_handle(bot_handle)
+        if await self.bot_manager.delete_bot(bot['bot_id']):
+            return f"成功：机器人 {bot_handle} 已删除"
+        return f"错误：删除机器人 {bot_handle} 失败"
 
-    def update_bot(self, bot_id: str, config_str: str) -> str:
+    def update_bot_config(self, bot_handle: str, config_str: str) -> str:
         """Update bot configuration."""
+        bot = self.bot_manager.get_bot_by_handle(bot_handle)
         try:
             config = json.loads(config_str)
         except json.JSONDecodeError:
             return "错误：JSON配置格式无效"
 
-        if self.bot_manager.update_bot(bot_id, config):
-            return f"成功：机器人 {bot_id} 配置已更新"
+        if self.bot_manager.update_bot(bot['bot_id'], config):
+            return f"成功：机器人 {bot_handle} 配置已更新"
         return f"错误：更新机器人配置失败"
 
     def list_chats(self, bot_id: str) -> str:
@@ -125,8 +147,8 @@ class TelegramBotServiceGradio:
                 with gr.Row():
                     with gr.Column():
                         token_input = gr.Textbox(label="机器人Token")
-                        bot_handle_input = gr.Textbox(label="机器人用户名")
-                    with gr.Column(scale=2):
+                        bot_handle_input = gr.Textbox(label="机器人用户名（e.g. @johndoe_123_bot）")
+                    with gr.Column(scale=3):
                         config_input = gr.Textbox(
                             label="配置（JSON格式）",
                             value=default_config_json,
@@ -141,55 +163,47 @@ class TelegramBotServiceGradio:
                 )
 
             with gr.Tab("管理机器人"):
-                refresh_btn = gr.Button("刷新机器人列表")
-                bot_list = gr.Textbox(label="机器人列表", lines=10)
-                refresh_btn.click(
-                    fn=self.format_bot_list,
-                    inputs=[],
-                    outputs=bot_list
-                )
+                bot_select = gr.Dropdown(label="机器人列表", choices=[], interactive=True)
+                with gr.Column():
+                    with gr.Row():
+                        bot_info = gr.Textbox(label="机器人状态")
+                        bot_config = gr.Textbox(label="机器人配置（JSON格式）", lines=6, scale=3, interactive=True)
 
-                with gr.Row():
-                    bot_id_input = gr.Textbox(label="机器人ID")
-                    action_btns = gr.Group()
-                    with action_btns:
+                    with gr.Row():
                         start_btn = gr.Button("启动")
                         stop_btn = gr.Button("停止")
                         delete_btn = gr.Button("删除")
+                        update_btn = gr.Button("更新机器人配置")
 
-                with gr.Row():
-                    config_update = gr.Textbox(
-                        label="新配置（JSON格式）",
-                        lines=5
-                    )
-                    update_btn = gr.Button("更新")
+                    action_output = gr.Textbox(label="操作结果")
 
-                action_output = gr.Textbox(label="操作结果")
-
-                start_btn.click(
-                    fn=lambda x: asyncio.run_coroutine_threadsafe(
-                        self.start_bot(x), self.loop).result(),
-                    inputs=bot_id_input,
-                    outputs=action_output
-                )
-
-                stop_btn.click(
+                bot_select.focus(lambda: gr.Dropdown(choices=self.list_bot_handles()), None, bot_select)
+                (bot_select
+                 .select(fn=self.get_bot_info, inputs=bot_select, outputs=bot_info)
+                 .then(fn=self.get_bot_config, inputs=bot_select, outputs=bot_config))
+                (start_btn
+                 .click(fn=lambda x: asyncio.run_coroutine_threadsafe(
+                    self.start_bot(x), self.loop).result(),
+                        inputs=bot_select, outputs=action_output)
+                 .then(fn=self.get_bot_info, inputs=bot_select, outputs=bot_info))
+                (stop_btn
+                 .click(
                     fn=lambda x: asyncio.run_coroutine_threadsafe(
                         self.stop_bot(x), self.loop).result(),
-                    inputs=bot_id_input,
-                    outputs=action_output
-                )
-
-                delete_btn.click(
+                    inputs=bot_select, outputs=action_output)
+                 .then(fn=self.get_bot_info, inputs=bot_select, outputs=bot_info))
+                (delete_btn
+                 .click(
                     fn=lambda x: asyncio.run_coroutine_threadsafe(
                         self.delete_bot(x), self.loop).result(),
-                    inputs=bot_id_input,
-                    outputs=action_output
-                )
-
+                    inputs=bot_select,
+                    outputs=action_output)
+                 .then(lambda: '', None, bot_info)
+                 .then(lambda: '', None, bot_config)
+                 .then(lambda: gr.Dropdown(choices=self.list_bot_handles()), None, bot_select))
                 update_btn.click(
-                    fn=self.update_bot,
-                    inputs=[bot_id_input, config_update],
+                    fn=self.update_bot_config,
+                    inputs=[bot_select, bot_config],
                     outputs=action_output
                 )
 
