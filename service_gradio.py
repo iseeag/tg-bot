@@ -234,7 +234,10 @@ class TelegramBotServiceGradio:
                     fn=self.clear_chat_history,
                     inputs=[chat_bot_select, chat_select],
                     outputs=chat_action_output)
-                 .then(lambda: '', None, history_output))
+                 .then(lambda: '', None, history_output)
+                 .then(fn=lambda x: gr.Dropdown(choices=self.list_chats(x)),
+                       inputs=chat_bot_select,
+                       outputs=chat_select))
 
         return interface
 
