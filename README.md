@@ -94,6 +94,67 @@ python service_gradio.py  # --host 0.0.0.0 --port 7860
 - 建议定期备份数据库文件
 - 在公网部署时，建议配置适当的安全措施
 
+## 协作开发指南
+
+### 分支管理
+
+我们采用 Feature Branch Workflow 工作流程：
+
+1. 主分支说明
+   - `main`: 主分支，保持稳定可发布状态
+   - `develop`: 开发分支，包含最新的开发特性
+
+2. 功能开发流程
+   ```bash
+   # 1. 从 develop 分支创建功能分支
+   git checkout develop
+   git pull origin develop
+   git checkout -b feature/your-feature-name
+
+   # 2. 在功能分支上进行开发
+   git add .
+   git commit -m "feat: 添加新功能"
+
+   # 3. 定期同步 develop 分支的更新
+   git checkout develop
+   git pull origin develop
+   git checkout feature/your-feature-name
+   git rebase develop
+
+   # 4. 完成功能后，创建 Pull Request
+   git push origin feature/your-feature-name
+   ```
+
+3. 分支命名规范
+   - 功能分支：`feature/功能名称`
+   - 修复分支：`bugfix/问题描述`
+   - 热修复分支：`hotfix/问题描述`
+
+4. 提交信息规范
+   ```
+   feat: 添加新功能
+   fix: 修复问题
+   docs: 更新文档
+   style: 代码格式调整
+   refactor: 代码重构
+   test: 添加测试
+   chore: 构建过程或辅助工具的变动
+   ```
+
+### 代码审查
+
+1. 所有代码变更都需要通过 Pull Request 进行
+2. 至少需要一个审查者批准后才能合并
+3. CI 检查必须通过
+4. 解决所有冲突后才能合并
+
+### 发布流程
+
+1. 在 develop 分支完成功能开发和测试
+2. 创建 release 分支进行发布准备
+3. 完成测试后合并到 main 分支
+4. 在 main 分支上添加版本标签
+
 ## 技术支持
 
 如有问题，请提交 Issue 或联系技术支持。
