@@ -106,20 +106,20 @@ python service_gradio.py  # --host 0.0.0.0 --port 7860
 
 2. 功能开发流程
    ```bash
-   # 1. 从 develop 分支创建功能分支
-   git checkout develop
-   git pull origin develop
+   # 1. 从 develop 分支(dev)创建功能分支
+   git checkout dev
+   git pull origin dev
    git checkout -b feature/your-feature-name
 
    # 2. 在功能分支上进行开发
    git add .
    git commit -m "feat: 添加新功能"
 
-   # 3. 定期同步 develop 分支的更新
-   git checkout develop
-   git pull origin develop
+   # 3. 定期同步 develop 分支(dev)的更新
+   git checkout dev
+   git pull origin dev
    git checkout feature/your-feature-name
-   git rebase develop
+   git rebase dev
 
    # 4. 完成功能后，创建 Pull Request
    git push origin feature/your-feature-name
@@ -150,7 +150,7 @@ python service_gradio.py  # --host 0.0.0.0 --port 7860
 
 ### 发布流程
 
-1. 在 develop 分支完成功能开发和测试
+1. 在 dev 分支完成功能开发和测试
 2. 创建 release 分支进行发布准备
 3. 完成测试后合并到 main 分支
 4. 在 main 分支上添加版本标签
