@@ -1,3 +1,4 @@
+import json
 import uuid
 from typing import Dict, List, Optional
 
@@ -8,6 +9,14 @@ from telegram.ext import (Application, CommandHandler, ContextTypes,
 
 from chat_module import ReplyFunctionFactory
 from database import Database
+
+default_config = {
+    "name": "Required, e.g. John Doe",
+    "description": "Optional, e.g. This is a sample bot configuration.",
+    "prompt": "Required, must contain {chat_history} {product_search_result}, e.g. Be a helpful assistant and provide useful information. \n{chat_history} \n{product_search_result}",
+    "product_catalog": "Required, e.g. Product catalog: \n- Product 1: $100 \n- Product 2: $200 \n- Product 3: $300",
+}
+default_config_json = json.dumps(default_config, indent=2, ensure_ascii=False)
 
 
 class TelegramBotManager:
@@ -90,7 +99,7 @@ class TelegramBotManager:
             True if successful, False otherwise
         """
         logger.info(f"Starting bot {bot_id}")
-        
+
         if bot_id in self.running_bots:
             logger.warning(f"Bot {bot_id} is already running")
             return False
@@ -112,23 +121,23 @@ class TelegramBotManager:
 
                 chat_id = str(update.effective_chat.id)
                 chat_name = update.effective_chat.title or update.effective_chat.first_name or str(chat_id)
-                
+
                 logger.debug(f"Processing message from chat {chat_id} ({chat_name})")
-                
+
                 # Ensure chat exists in database
                 self.db.add_chat(chat_id, bot_id, chat_name)
-                
+
                 # Get chat history
                 chat_history = self.db.get_chat_history(chat_id, bot_id)
-                
+
                 # Record incoming message
                 if update.message and update.message.text:
                     logger.debug(f"Recording incoming message from chat {chat_id}")
                     self.db.add_message(chat_id, bot_id, update.message.text, False)
-                
+
                 # Generate reply
                 reply = await reply_func(update, context, chat_history)
-                
+
                 # Record and send reply
                 if reply:
                     logger.debug(f"Sending reply to chat {chat_id}")
@@ -138,7 +147,7 @@ class TelegramBotManager:
             # Add handlers
             application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
             logger.debug(f"Added message handler for bot {bot_id}")
-            
+
             # Start the bot
             await application.initialize()
             await application.start()
@@ -148,7 +157,7 @@ class TelegramBotManager:
             self.db.update_bot_status(bot_id, "running")
             logger.success(f"Bot {bot_id} started successfully")
             return True
-            
+
         except Exception as e:
             logger.exception(f"Error starting bot {bot_id}: {str(e)}")
             return False
@@ -164,7 +173,7 @@ class TelegramBotManager:
             True if successful, False otherwise
         """
         logger.info(f"Stopping bot {bot_id}")
-        
+
         if bot_id not in self.running_bots:
             logger.warning(f"Bot {bot_id} is not running")
             return False
@@ -174,12 +183,12 @@ class TelegramBotManager:
             await application.updater.stop()
             await application.stop()
             await application.shutdown()
-            
+
             del self.running_bots[bot_id]
             self.db.update_bot_status(bot_id, "stopped")
             logger.success(f"Bot {bot_id} stopped successfully")
             return True
-            
+
         except Exception as e:
             logger.exception(f"Error stopping bot {bot_id}: {str(e)}")
             return False

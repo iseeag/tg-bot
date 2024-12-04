@@ -6,7 +6,7 @@ from typing import Dict, List
 import gradio as gr
 
 from database import Database
-from tg_module import TelegramBotManager
+from tg_module import TelegramBotManager, default_config_json
 
 
 class TelegramBotServiceGradio:
@@ -117,13 +117,15 @@ class TelegramBotServiceGradio:
 
             with gr.Tab("创建机器人"):
                 with gr.Row():
-                    token_input = gr.Textbox(label="机器人Token")
-                    bot_handle_input = gr.Textbox(label="机器人用户名")
-                    config_input = gr.Textbox(
-                        label="配置（JSON格式）",
-                        value='{\n    "name": "我的机器人",\n    "description": "一个新机器人"\n}',
-                        lines=5
-                    )
+                    with gr.Column():
+                        token_input = gr.Textbox(label="机器人Token")
+                        bot_handle_input = gr.Textbox(label="机器人用户名")
+                    with gr.Column(scale=2):
+                        config_input = gr.Textbox(
+                            label="配置（JSON格式）",
+                            value=default_config_json,
+                            lines=4
+                        )
                 create_btn = gr.Button("创建机器人")
                 create_output = gr.Textbox(label="结果")
                 create_btn.click(
@@ -228,12 +230,12 @@ class TelegramBotServiceGradio:
 
 if __name__ == "__main__":
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="运行Telegram机器人管理系统")
     parser.add_argument("--host", default=None, help="服务器主机名或IP (例如: '0.0.0.0'表示公开访问)")
     parser.add_argument("--port", type=int, default=7860, help="服务器端口号")
-    
+
     args = parser.parse_args()
-    
+
     service = TelegramBotServiceGradio()
     service.run(server_name=args.host, server_port=args.port)
