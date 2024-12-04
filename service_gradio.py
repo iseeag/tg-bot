@@ -105,22 +105,25 @@ class TelegramBotServiceGradio:
             return f"成功：机器人 {bot_handle} 配置已更新"
         return f"错误：更新机器人配置失败"
 
-    def list_chats(self, bot_id: str) -> str:
+    def list_chats(self, bot_handle: str) -> List[str]:
         """List all chats for a bot."""
-        chats = self.bot_manager.list_chats(bot_id)
+        bot = self.bot_manager.get_bot_by_handle(bot_handle)
+        chats = self.bot_manager.list_chats(bot['bot_id'])
         if not chats:
-            return "未找到聊天记录"
+            return []
 
         result = []
         for chat in chats:
-            result.append(f"聊天ID：{chat['chat_id']}")
-            result.append(f"聊天名称：{chat['chat_name']}")
-            result.append("-" * 30)
-        return "\n".join(result)
+            chat_id = chat['chat_id']
+            chat_name = chat['chat_name']
+            result.append(f'聊天名称：{chat_name} <{chat_id}>')
+        return result
 
-    def get_chat_history(self, bot_id: str, chat_id: str) -> str:
+    def get_chat_history(self, bot_handle: str, chat_info: str) -> str:
         """Get chat history."""
-        history = self.bot_manager.get_chat_history(bot_id, chat_id)
+        bot = self.bot_manager.get_bot_by_handle(bot_handle)
+        chat_id = chat_info.split("<")[1].split(">")[0]
+        history = self.bot_manager.get_chat_history(bot['bot_id'], chat_id)
         if not history:
             return "未找到消息记录"
 
@@ -132,9 +135,11 @@ class TelegramBotServiceGradio:
             result.append("-" * 30)
         return "\n".join(result)
 
-    def clear_chat_history(self, bot_id: str, chat_id: str) -> str:
+    def clear_chat_history(self, bot_handle: str, chat_info: str) -> str:
         """Clear chat history."""
-        if self.bot_manager.clear_chat_history(bot_id, chat_id):
+        bot = self.bot_manager.get_bot_by_handle(bot_handle)
+        chat_id = chat_info.split("<")[1].split(">")[0]
+        if self.bot_manager.clear_chat_history(bot['bot_id'], chat_id):
             return "成功：聊天记录已清除"
         return "提示：没有找到可清除的消息"
 
@@ -152,7 +157,7 @@ class TelegramBotServiceGradio:
                         config_input = gr.Textbox(
                             label="配置（JSON格式）",
                             value=default_config_json,
-                            lines=12
+                            lines=12, show_copy_button=True
                         )
                 create_btn = gr.Button("创建机器人")
                 create_output = gr.Textbox(label="操作结果")
@@ -167,7 +172,8 @@ class TelegramBotServiceGradio:
                 with gr.Column():
                     with gr.Row():
                         bot_info = gr.Textbox(label="机器人状态")
-                        bot_config = gr.Textbox(label="机器人配置（JSON格式）", lines=6, scale=3, interactive=True)
+                        bot_config = gr.Textbox(label="机器人配置（JSON格式）", show_copy_button=True,
+                                                lines=6, scale=3, interactive=True)
 
                     with gr.Row():
                         start_btn = gr.Button("启动")
@@ -209,36 +215,26 @@ class TelegramBotServiceGradio:
 
             with gr.Tab("聊天记录"):
                 with gr.Row():
-                    chat_bot_id = gr.Textbox(label="机器人ID")
-                    chat_id = gr.Textbox(label="聊天ID")
+                    chat_bot_select = gr.Dropdown(label="机器人列表", choices=[], interactive=True)
+                    chat_select = gr.Dropdown(label="聊天列表", choices=[], interactive=True)
 
-                with gr.Row():
-                    list_chats_btn = gr.Button("列出聊天记录")
-                    clear_history_btn = gr.Button("清除聊天记录", variant="secondary")
+                history_output = gr.Textbox(label="聊天历史", lines=10, show_copy_button=True)
+                clear_history_btn = gr.Button("清除聊天记录", variant="secondary")
+                chat_action_output = gr.Textbox(label="操作结果")
 
-                chats_output = gr.Textbox(label="聊天列表", lines=5)
-
-                with gr.Row():
-                    view_history_btn = gr.Button("查看聊天历史")
-                    history_output = gr.Textbox(label="聊天历史", lines=10)
-
-                list_chats_btn.click(
-                    fn=self.list_chats,
-                    inputs=chat_bot_id,
-                    outputs=chats_output
-                )
-
-                view_history_btn.click(
-                    fn=self.get_chat_history,
-                    inputs=[chat_bot_id, chat_id],
-                    outputs=history_output
-                )
-
-                clear_history_btn.click(
+                chat_bot_select.focus(lambda: gr.Dropdown(choices=self.list_bot_handles()), None, chat_bot_select)
+                chat_bot_select.select(fn=lambda x: gr.Dropdown(choices=self.list_chats(x)),
+                                       inputs=chat_bot_select,
+                                       outputs=chat_select)
+                chat_select.select(fn=self.get_chat_history,
+                                   inputs=[chat_bot_select, chat_select],
+                                   outputs=history_output)
+                (clear_history_btn
+                 .click(
                     fn=self.clear_chat_history,
-                    inputs=[chat_bot_id, chat_id],
-                    outputs=chats_output
-                )
+                    inputs=[chat_bot_select, chat_select],
+                    outputs=chat_action_output)
+                 .then(lambda: '', None, history_output))
 
         return interface
 
