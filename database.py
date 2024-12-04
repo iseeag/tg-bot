@@ -173,3 +173,13 @@ class Database:
                 "is_from_bot": bool(row[1]),
                 "timestamp": row[2]
             } for row in cursor.fetchall()]
+
+    def clear_chat_history(self, chat_id: str, bot_id: str) -> bool:
+        """Clear all messages for a specific chat."""
+        with sqlite3.connect(self.db_file) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "DELETE FROM messages WHERE chat_id = ? AND bot_id = ?",
+                (chat_id, bot_id)
+            )
+            return cursor.rowcount > 0

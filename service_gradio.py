@@ -110,6 +110,12 @@ class TelegramBotServiceGradio:
             result.append("-" * 30)
         return "\n".join(result)
 
+    def clear_chat_history(self, bot_id: str, chat_id: str) -> str:
+        """Clear chat history."""
+        if self.bot_manager.clear_chat_history(bot_id, chat_id):
+            return "成功：聊天记录已清除"
+        return "提示：没有找到可清除的消息"
+
     def create_ui(self):
         """Create the Gradio interface."""
         with gr.Blocks(title="Telegram机器人管理系统") as interface:
@@ -192,11 +198,15 @@ class TelegramBotServiceGradio:
                     chat_bot_id = gr.Textbox(label="机器人ID")
                     chat_id = gr.Textbox(label="聊天ID")
 
-                list_chats_btn = gr.Button("列出聊天记录")
+                with gr.Row():
+                    list_chats_btn = gr.Button("列出聊天记录")
+                    clear_history_btn = gr.Button("清除聊天记录", variant="secondary")
+
                 chats_output = gr.Textbox(label="聊天列表", lines=5)
 
-                view_history_btn = gr.Button("查看聊天历史")
-                history_output = gr.Textbox(label="聊天历史", lines=10)
+                with gr.Row():
+                    view_history_btn = gr.Button("查看聊天历史")
+                    history_output = gr.Textbox(label="聊天历史", lines=10)
 
                 list_chats_btn.click(
                     fn=self.list_chats,
@@ -208,6 +218,12 @@ class TelegramBotServiceGradio:
                     fn=self.get_chat_history,
                     inputs=[chat_bot_id, chat_id],
                     outputs=history_output
+                )
+
+                clear_history_btn.click(
+                    fn=self.clear_chat_history,
+                    inputs=[chat_bot_id, chat_id],
+                    outputs=chats_output
                 )
 
         return interface

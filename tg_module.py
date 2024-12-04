@@ -229,3 +229,22 @@ class TelegramBotManager:
         """
         logger.debug(f"Retrieving chat history for bot {bot_id}, chat {chat_id}")
         return self.db.get_chat_history(chat_id, bot_id)
+
+    def clear_chat_history(self, bot_id: str, chat_id: str) -> bool:
+        """
+        Clear chat history for a specific chat.
+        
+        Args:
+            bot_id: Unique identifier for the bot
+            chat_id: Unique identifier for the chat
+            
+        Returns:
+            True if successful and messages were deleted, False otherwise
+        """
+        logger.info(f"Clearing chat history for bot {bot_id}, chat {chat_id}")
+        success = self.db.clear_chat_history(chat_id, bot_id)
+        if success:
+            logger.success(f"Chat history cleared for bot {bot_id}, chat {chat_id}")
+        else:
+            logger.warning(f"No messages found to clear for bot {bot_id}, chat {chat_id}")
+        return success
